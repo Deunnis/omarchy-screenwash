@@ -27,13 +27,20 @@ Item {
 
   function applySettings(settings) {
     if (!settings) return
-    intervalMinutes = clampInt(settings.intervalMinutes, 30, 5, 240)
-    durationMs = clampInt(settings.durationMs, 1500, 500, 10000)
-    if (settings.mode === "wash" || settings.mode === "dim")
-      mode = settings.mode
-    if (typeof settings.skipWhenFullscreen === "boolean")
-      skipWhenFullscreen = settings.skipWhenFullscreen
-    washTimer.interval = intervalMinutes * 60 * 1000
+    var changed = false
+    var newInterval = clampInt(settings.intervalMinutes, intervalMinutes, 5, 240)
+    var newDuration = clampInt(settings.durationMs, durationMs, 500, 10000)
+    if (newInterval !== intervalMinutes) { intervalMinutes = newInterval; changed = true }
+    if (newDuration !== durationMs) { durationMs = newDuration; changed = true }
+    if (settings.mode === "wash" || settings.mode === "dim") {
+      if (settings.mode !== mode) { mode = settings.mode; changed = true }
+    }
+    if (typeof settings.skipWhenFullscreen === "boolean") {
+      if (settings.skipWhenFullscreen !== skipWhenFullscreen) {
+        skipWhenFullscreen = settings.skipWhenFullscreen; changed = true
+      }
+    }
+    if (changed) washTimer.interval = intervalMinutes * 60 * 1000
   }
 
   function clampInt(val, fallback, min, max) {

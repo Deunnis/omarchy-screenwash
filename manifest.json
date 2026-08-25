@@ -15,7 +15,45 @@
     "description": "Toggle screen wash on/off to prevent burn-in.",
     "category": "System",
     "allowMultiple": false,
-    "defaultSection": "right"
+    "defaultSection": "right",
+    "defaults": {
+      "intervalMinutes": 30,
+      "durationMs": 1500,
+      "mode": "wash",
+      "skipWhenFullscreen": true
+    },
+    "schema": [
+      {
+        "key": "intervalMinutes",
+        "type": "integer",
+        "label": "Interval (minutes)",
+        "min": 5,
+        "max": 240,
+        "step": 5,
+        "defaultValue": 30
+      },
+      {
+        "key": "durationMs",
+        "type": "integer",
+        "label": "Duration (ms)",
+        "min": 500,
+        "max": 10000,
+        "step": 250,
+        "defaultValue": 1500
+      },
+      {
+        "key": "mode",
+        "type": "string",
+        "label": "Mode",
+        "defaultValue": "wash"
+      },
+      {
+        "key": "skipWhenFullscreen",
+        "type": "boolean",
+        "label": "Skip when fullscreen",
+        "defaultValue": true
+      }
+    ]
   },
   "service": {
     "defaults": {
