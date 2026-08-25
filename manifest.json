@@ -1,0 +1,64 @@
+{
+  "schemaVersion": 1,
+  "id": "daan.screenwash",
+  "name": "Screen Wash",
+  "version": "1.0.0",
+  "author": "Daan",
+  "description": "Periodically washes the screen with colors or dim overlay to prevent burn-in during long sessions.",
+  "kinds": ["service", "bar-widget"],
+  "entryPoints": {
+    "service": "Service.qml",
+    "barWidget": "BarWidget.qml"
+  },
+  "barWidget": {
+    "displayName": "Screen Wash",
+    "description": "Toggle screen wash on/off to prevent burn-in.",
+    "category": "System",
+    "allowMultiple": false,
+    "defaultSection": "right"
+  },
+  "service": {
+    "defaults": {
+      "intervalMinutes": 30,
+      "durationMs": 1500,
+      "mode": "wash",
+      "skipWhenFullscreen": true
+    },
+    "schema": [
+      {
+        "key": "intervalMinutes",
+        "type": "integer",
+        "label": "Interval (minutes)",
+        "min": 5,
+        "max": 240,
+        "step": 5,
+        "defaultValue": 30,
+        "description": "Minutes between screen washes."
+      },
+      {
+        "key": "durationMs",
+        "type": "integer",
+        "label": "Duration (ms)",
+        "min": 500,
+        "max": 10000,
+        "step": 250,
+        "defaultValue": 1500,
+        "description": "How long the wash overlay stays visible in milliseconds."
+      },
+      {
+        "key": "mode",
+        "type": "string",
+        "label": "Mode",
+        "defaultValue": "wash",
+        "description": "Wash mode: 'wash' cycles solid colors, 'dim' fades a black overlay."
+      },
+      {
+        "key": "skipWhenFullscreen",
+        "type": "boolean",
+        "label": "Skip when fullscreen",
+        "defaultValue": true,
+        "description": "Skip the wash if a fullscreen window is active."
+      }
+    ]
+  }
+}
