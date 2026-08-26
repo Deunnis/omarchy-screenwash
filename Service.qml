@@ -90,7 +90,12 @@ Item {
     // without this flag it would call beginOverlay() a second time on top
     // of the one the deadline timer already triggered.
     property bool timedOut: false
-    command: ["bash", "-c", "exec hyprctl activewindow -j | head -c " + root.maxFullscreenCheckBytes]
+    // setsid puts this whole invocation in its own process group (with this
+    // PID as its leader) - required so the deadline timer below can kill
+    // the *group* (hyprctl and head are separate pipeline children of the
+    // bash wrapper, not the same process as it) rather than just the one
+    // wrapper PID, which would leave them both running as orphans.
+    command: ["setsid", "bash", "-c", "exec hyprctl activewindow -j | head -c " + root.maxFullscreenCheckBytes]
     // `hyprctl -j` output is pretty-printed, real multi-line JSON (confirmed
     // directly - a single activewindow response is ~35+ lines) - a single
     // line is never valid JSON on its own, so this needs the whole output
@@ -127,7 +132,10 @@ Item {
   // Process.running = false (and even the documented .signal()) don't
   // reliably terminate a still-running process on this Quickshell build -
   // confirmed the hard way while hardening a different plugin. Killing by
-  // PID via an external `kill` is the only approach that actually works.
+  // PID via an external `kill` is the only approach that actually works -
+  // and since the command is a pipeline (hyprctl | head), killing only the
+  // wrapper's own PID leaves both pipeline children running as orphans;
+  // `kill -- -PID` targets the whole process group setsid created above.
   Timer {
     id: fullscreenCheckDeadline
     interval: 2000
@@ -135,7 +143,7 @@ Item {
     onTriggered: {
       if (!fullscreenCheck.running) return
       fullscreenCheck.timedOut = true
-      killFullscreenCheckProc.command = ["kill", String(fullscreenCheck.processId)]
+      killFullscreenCheckProc.command = ["kill", "--", "-" + String(fullscreenCheck.processId)]
       killFullscreenCheckProc.running = true
       // Don't wait on the kill to land before deciding: fail open (treat as
       // "not fullscreen") rather than leaving the wash blocked indefinitely
