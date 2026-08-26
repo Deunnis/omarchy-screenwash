@@ -9,17 +9,14 @@ BarWidget {
   readonly property var washService: bar && bar.shell ? bar.shell.serviceFor("daan.screenwash") : null
   readonly property bool serviceEnabled: washService ? washService.enabled : false
 
-  // Local toggle state (mirrors service, updated on toggle)
   property bool popupEnabled: serviceEnabled
 
-  // Settings read from shell.json
   readonly property int settingInterval: clampInt(setting("intervalMinutes", 30), 30, 5, 240)
   readonly property int settingDuration: clampInt(setting("durationMs", 1500), 1500, 500, 10000)
   readonly property string settingMode: setting("mode", "wash") === "dim" ? "dim" : "wash"
   readonly property bool settingSkipFs: typeof setting("skipWhenFullscreen", true) === "boolean"
     ? setting("skipWhenFullscreen", true) : true
 
-  // Live working copies for the popup
   property int liveInterval: settingInterval
   property int liveDuration: settingDuration
   property string liveMode: settingMode
@@ -51,7 +48,6 @@ BarWidget {
       root.bar.shell.updateEntryInline(root.moduleName, root.settings)
   }
 
-  // Push live settings to the service
   function applyToService() {
     if (washService) {
       washService.applySettings({
@@ -70,7 +66,6 @@ BarWidget {
     }
   }
 
-  // Sync local toggle when service changes externally
   Connections {
     target: root.washService
     function onEnabledChanged() {
@@ -126,10 +121,10 @@ BarWidget {
 
         Text {
           text: "Screen Wash"
-          font: Style.font.h5
-          color: Color.bar.text
+          font.family: Style.font.family
+          font.pixelSize: Style.font.heading
+          color: Color.popups.text
           anchors.verticalCenter: parent.verticalCenter
-          Layout.fillWidth: true
         }
 
         Rectangle {
@@ -159,7 +154,12 @@ BarWidget {
         width: parent.width
         spacing: Style.space(6)
 
-        Text { text: "Mode"; font: Style.font.caption; color: Color.bar.muted }
+        Text {
+          text: "Mode"
+          font.family: Style.font.family
+          font.pixelSize: Style.font.caption
+          color: Color.muted
+        }
 
         Row {
           spacing: Style.space(6)
@@ -167,14 +167,15 @@ BarWidget {
             model: ["wash", "dim"]
             delegate: Rectangle {
               width: 56; height: 28; radius: 6
-              color: root.liveMode === modelData ? Color.accent : Color.surface
-              border.width: 1; border.color: root.liveMode === modelData ? Color.accent : Color.border
+              color: root.liveMode === modelData ? Color.accent : Color.popups.background
+              border.width: 1; border.color: root.liveMode === modelData ? Color.accent : Color.popups.border
 
               Text {
                 anchors.centerIn: parent
                 text: modelData === "wash" ? "Wash" : "Dim"
-                font: Style.font.caption
-                color: root.liveMode === modelData ? "white" : Color.bar.text
+                font.family: Style.font.family
+                font.pixelSize: Style.font.caption
+                color: root.liveMode === modelData ? "white" : Color.popups.text
               }
 
               MouseArea {
@@ -194,7 +195,12 @@ BarWidget {
         width: parent.width
         spacing: Style.space(6)
 
-        Text { text: "Interval"; font: Style.font.caption; color: Color.bar.muted }
+        Text {
+          text: "Interval"
+          font.family: Style.font.family
+          font.pixelSize: Style.font.caption
+          color: Color.muted
+        }
 
         Row {
           spacing: Style.space(6)
@@ -204,14 +210,15 @@ BarWidget {
             model: [15, 30, 60, 120]
             delegate: Rectangle {
               width: 44; height: 28; radius: 6
-              color: root.liveInterval === modelData ? Color.accent : Color.surface
-              border.width: 1; border.color: root.liveInterval === modelData ? Color.accent : Color.border
+              color: root.liveInterval === modelData ? Color.accent : Color.popups.background
+              border.width: 1; border.color: root.liveInterval === modelData ? Color.accent : Color.popups.border
 
               Text {
                 anchors.centerIn: parent
                 text: modelData + "m"
-                font: Style.font.caption
-                color: root.liveInterval === modelData ? "white" : Color.bar.text
+                font.family: Style.font.family
+                font.pixelSize: Style.font.caption
+                color: root.liveInterval === modelData ? "white" : Color.popups.text
               }
 
               MouseArea {
@@ -231,7 +238,12 @@ BarWidget {
         width: parent.width
         spacing: Style.space(6)
 
-        Text { text: "Duration"; font: Style.font.caption; color: Color.bar.muted }
+        Text {
+          text: "Duration"
+          font.family: Style.font.family
+          font.pixelSize: Style.font.caption
+          color: Color.muted
+        }
 
         Row {
           spacing: Style.space(6)
@@ -241,14 +253,15 @@ BarWidget {
             model: [500, 1000, 1500, 3000]
             delegate: Rectangle {
               width: 48; height: 28; radius: 6
-              color: root.liveDuration === modelData ? Color.accent : Color.surface
-              border.width: 1; border.color: root.liveDuration === modelData ? Color.accent : Color.border
+              color: root.liveDuration === modelData ? Color.accent : Color.popups.background
+              border.width: 1; border.color: root.liveDuration === modelData ? Color.accent : Color.popups.border
 
               Text {
                 anchors.centerIn: parent
                 text: modelData >= 1000 ? (modelData / 1000) + "s" : modelData + "ms"
-                font: Style.font.caption
-                color: root.liveDuration === modelData ? "white" : Color.bar.text
+                font.family: Style.font.family
+                font.pixelSize: Style.font.caption
+                color: root.liveDuration === modelData ? "white" : Color.popups.text
               }
 
               MouseArea {
@@ -270,10 +283,10 @@ BarWidget {
 
         Text {
           text: "Skip if fullscreen"
-          font: Style.font.caption
-          color: Color.bar.text
+          font.family: Style.font.family
+          font.pixelSize: Style.font.caption
+          color: Color.popups.text
           anchors.verticalCenter: parent.verticalCenter
-          Layout.fillWidth: true
         }
 
         Rectangle {
