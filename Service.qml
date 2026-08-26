@@ -70,20 +70,53 @@ Item {
     onTriggered: root.startWash()
   }
 
+  // hyprctl's activewindow JSON can, in principle, embed a window title/class
+  // of attacker-influenced length (e.g. a hostile page setting its tab title).
+  // Piping through `head -c` bounds how many bytes can ever reach
+  // StdioCollector's buffer - a JS-side length check after the fact would run
+  // too late, since the collector already buffers everything before onExited
+  // (and any parsing) ever fires. fullscreenCheckDeadline guards the other
+  // failure mode: if hyprctl itself hangs, nothing else would ever time it
+  // out, and since startWash() won't re-issue a check while one is still
+  // "running", a single hang would silently disable the periodic fullscreen
+  // check (and therefore this plugin's whole anti-burn-in purpose) until the
+  // shell restarts.
+  property int maxFullscreenCheckBytes: 65536
+
   Process {
     id: fullscreenCheck
-    command: ["hyprctl", "activewindow", "-j"]
-    stdout: SplitParser {
-      onRead: function(line) {
-        try {
-          var data = JSON.parse(line)
-          root.isFullscreen = (data.fullscreen === true || data.fullscreen === 1)
-        } catch(e) {
-          root.isFullscreen = false
-        }
+    // Set once the deadline timer below has already force-killed and acted
+    // on this run - onExited still fires later once the kill lands, and
+    // without this flag it would call beginOverlay() a second time on top
+    // of the one the deadline timer already triggered.
+    property bool timedOut: false
+    command: ["bash", "-c", "exec hyprctl activewindow -j | head -c " + root.maxFullscreenCheckBytes]
+    // `hyprctl -j` output is pretty-printed, real multi-line JSON (confirmed
+    // directly - a single activewindow response is ~35+ lines) - a single
+    // line is never valid JSON on its own, so this needs the whole output
+    // collected before parsing, not SplitParser's one-line-at-a-time onRead.
+    stdout: StdioCollector {
+      id: fullscreenCheckOut
+      waitForEnd: true
+    }
+    onRunningChanged: {
+      if (running) {
+        timedOut = false
+        fullscreenCheckDeadline.restart()
+      } else {
+        fullscreenCheckDeadline.stop()
       }
     }
     onExited: {
+      if (timedOut) return // already handled by fullscreenCheckDeadline
+      try {
+        var data = JSON.parse(fullscreenCheckOut.text)
+        root.isFullscreen = (data.fullscreen === true || data.fullscreen === 1)
+      } catch (e) {
+        // Truncated by the byte cap above, or otherwise malformed - fail
+        // open (see fullscreenCheckDeadline's onTriggered for why).
+        root.isFullscreen = false
+      }
       if (root.skipWhenFullscreen && root.isFullscreen) {
         return
       }
@@ -91,9 +124,37 @@ Item {
     }
   }
 
+  // Process.running = false (and even the documented .signal()) don't
+  // reliably terminate a still-running process on this Quickshell build -
+  // confirmed the hard way while hardening a different plugin. Killing by
+  // PID via an external `kill` is the only approach that actually works.
+  Timer {
+    id: fullscreenCheckDeadline
+    interval: 2000
+    repeat: false
+    onTriggered: {
+      if (!fullscreenCheck.running) return
+      fullscreenCheck.timedOut = true
+      killFullscreenCheckProc.command = ["kill", String(fullscreenCheck.processId)]
+      killFullscreenCheckProc.running = true
+      // Don't wait on the kill to land before deciding: fail open (treat as
+      // "not fullscreen") rather than leaving the wash blocked indefinitely
+      // on a command that has already proven it might hang.
+      root.isFullscreen = false
+      root.beginOverlay()
+    }
+  }
+
+  Process { id: killFullscreenCheckProc }
+
   function startWash() {
     if (isWashing || !enabled) return
     if (skipWhenFullscreen) {
+      // Reassigning running=true while a previous invocation hasn't exited
+      // yet doesn't wait for or replace it - it can orphan the still-running
+      // process while a second one starts, defeating the deadline/kill
+      // tracking below (which only knows about the most recent one).
+      if (fullscreenCheck.running) return
       fullscreenCheck.running = true
     } else {
       beginOverlay()
