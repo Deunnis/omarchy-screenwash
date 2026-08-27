@@ -66,7 +66,9 @@ Item {
     interval: root.intervalMinutes * 60 * 1000
     running: root.enabled
     repeat: true
-    triggeredOnStart: root.enabled
+    // Quickshell reloads the plugin graph when any plugin changes. Start a
+    // fresh interval after a reload instead of treating it as a wash trigger.
+    triggeredOnStart: false
     onTriggered: root.startWash()
   }
 
